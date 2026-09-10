@@ -20,6 +20,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var loginStatus = "unknown"
     private var wakeObserver: NSObjectProtocol?
     private let queue = DispatchQueue(label: "local.codex.usage-reader", qos: .utility)
+    private lazy var contextMenu: NSMenu = {
+        let menu = NSMenu()
+        let quitItem = NSMenuItem(title: "종료", action: #selector(quit), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
+        return menu
+    }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if NSRunningApplication.runningApplications(withBundleIdentifier: appID)
@@ -33,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
             button.target = self
             button.action = #selector(clicked)
-            button.sendAction(on: [.leftMouseUp])
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.setAccessibilityLabel("Codex 주간 남은 한도")
         }
         registerLogin()
@@ -71,7 +78,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc private func clicked() { refresh(reason: "click") }
+    @objc private func clicked() {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            item.menu = contextMenu
+            item.button?.performClick(nil)
+            item.menu = nil
+        } else {
+            refresh(reason: "click")
+        }
+    }
+
+    @objc private func quit() { NSApp.terminate(nil) }
 
     private func refresh(reason: String) {
         guard !refreshing else { return }
